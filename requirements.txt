@@ -1,0 +1,5 @@
+markitdown[pdf,docx,pptx,xlsx,xls]==0.1.8
+fastapi==0.118.0
+uvicorn[standard]==0.37.0
+python-multipart==0.0.20
+mcp==1.26.0

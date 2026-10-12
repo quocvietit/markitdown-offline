@@ -1,0 +1,84 @@
+services:
+  markitdown-web:
+    image: markitdown-offline:1.1.0
+    command: [ "uvicorn", "web:app", "--host", "0.0.0.0", "--port", "8095" ]
+    ports:
+      - "127.0.0.1:8095:8095"
+    environment:
+      INPUT_DIR: /data/inbox
+      OUTPUT_DIR: /data/outbox
+      JOB_DIR: /data/jobs
+      MAX_FILE_MB: "100"
+      RETENTION_SECONDS: "3600"
+      CLEANUP_INTERVAL_SECONDS: "30"
+    volumes:
+      - ./data:/data
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    cap_drop: [ "ALL" ]
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
+    mem_limit: 256m
+    cpus: 1.0
+    restart: unless-stopped
+    networks: [ control ]
+
+  markitdown-worker:
+    image: markitdown-offline:1.1.0
+    command: [ "python", "/app/worker.py" ]
+    environment:
+      INPUT_DIR: /data/inbox
+      OUTPUT_DIR: /data/outbox
+      JOB_DIR: /data/jobs
+      MAX_FILE_MB: "100"
+      RETENTION_SECONDS: "3600"
+      CLEANUP_INTERVAL_SECONDS: "30"
+      POLL_SECONDS: "1"
+      JOB_TIMEOUT_SECONDS: "3300"
+    volumes:
+      - ./data:/data
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=128m
+    cap_drop: [ "ALL" ]
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
+    mem_limit: 1g
+    cpus: 2.0
+    restart: unless-stopped
+    network_mode: none
+
+  markitdown-mcp:
+    image: markitdown-offline:1.1.0
+    command: [ "python", "/app/mcp_server.py" ]
+    ports:
+      - "127.0.0.1:8096:8096"
+    environment:
+      INPUT_DIR: /data/inbox
+      OUTPUT_DIR: /data/outbox
+      JOB_DIR: /data/jobs
+      MAX_FILE_MB: "100"
+      RETENTION_SECONDS: "3600"
+      FASTMCP_HOST: 0.0.0.0
+      FASTMCP_PORT: "8096"
+      FASTMCP_STREAMABLE_HTTP_PATH: /mcp
+    volumes:
+      - ./data:/data
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    cap_drop: [ "ALL" ]
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
+    mem_limit: 256m
+    cpus: 1.0
+    restart: unless-stopped
+    networks: [ control ]
+
+networks:
+  control:
+    driver: bridge
